@@ -1,4 +1,21 @@
 module Delayed
+  class Worker
+    def run(job)
+          runtime =  Benchmark.realtime do
+            Timeout.timeout(self.class.max_run_time.to_i) { job.invoke_job }
+            job.status = "Completed"
+            job.save
+          end
+          say "#{job.name} completed after %.4f" % runtime
+          return true  # did work
+        rescue DeserializationError => error
+          job.last_error = "{#{error.message}\n#{error.backtrace.join("\n")}"
+          failed(job)
+        rescue Exception => error
+          self.class.lifecycle.run_callbacks(:error, self, job){ handle_failed_job(job, error) }
+          return false  # work failed
+        end
+  end  
   module Backend
     module CouchrestModel
       class Job < CouchRest::Model::Base
@@ -15,20 +32,21 @@ module Delayed
         property :failed_at,  Time
         property :last_error, String
         property :queue,      String
+        property :status  
         timestamps!
         
         design do
           view :by_failed_at_locked_by_and_run_at,
             :map =>
               "function(doc) {
-                if (doc.type == 'Delayed::Backend::CouchrestModel::Job') {
+                if ((doc.type == 'Delayed::Backend::CouchrestModel::Job') && (doc.status != 'Completed')) {
                   emit([doc.failed_at || null, doc.locked_by || null, doc.run_at || null], null);
                 } 
               }"
             view :by_failed_at_locked_at_and_run_at,
               :map =>
                 "function(doc) {
-                  if (doc.type == 'Delayed::Backend::CouchrestModel::Job') {
+                  if ((doc.type == 'Delayed::Backend::CouchrestModel::Job') && (doc.status != 'Completed')) {
                     emit([doc.failed_at || null, doc.locked_at || null, doc.run_at || null], null);
                   } 
                 }"
