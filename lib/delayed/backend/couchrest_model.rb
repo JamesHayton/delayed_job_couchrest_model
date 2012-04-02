@@ -89,7 +89,7 @@ module Delayed
           by_failed_at_locked_by_and_run_at.startkey([nil, worker_name]).endkey([nil, worker_name, {}])
         end  
         
-        def self.expired_jobs
+        def self.expired_jobs(max_run_time)
           by_failed_at_locked_at_and_run_at.startkey([nil, '0']).endkey([nil, db_time_now - max_run_time, db_time_now])
         end
         
