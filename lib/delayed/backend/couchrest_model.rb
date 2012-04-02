@@ -1,4 +1,3 @@
-# encoding: utf-8
 module Delayed
   module Backend
     module CouchrestModel
