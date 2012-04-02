@@ -25,14 +25,14 @@ module Delayed
 
         property :priority,   Integer, :default => 0
         property :attempts,   Integer, :default => 0
-        property :handler,    String
+        property :handler
         property :run_at,     Time
         property :locked_at,  Time
-        property :locked_by,  String
+        property :locked_by
         property :failed_at,  Time
-        property :last_error, String
-        property :queue,      String
-        property :status  
+        property :last_error
+        property :queue
+        property :status,     :default => "Pending"  
         timestamps!
         
         design do
@@ -81,7 +81,7 @@ module Delayed
           when locked_by_me?(worker)
             self.locked_at = self.class.db_time_now
           when (unlocked? or (locked_by_other?(worker) and expired?(max_run_time)))
-            self.locked_at, self.locked_by = self.class.db_time_now, worker
+            self.locked_at, self.locked_by, self.status = self.class.db_time_now, worker, "Working"
           end
           save
         rescue RestClient::Conflict
