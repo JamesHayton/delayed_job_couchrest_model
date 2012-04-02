@@ -42,8 +42,8 @@ module Delayed
         
         def self.find_available(worker_name, limit = 5, max_run_time = ::Delayed::Worker.max_run_time)
                   ready  = ready_jobs
-                  mine   = my_jobs worker_name
-                  expire = expired_jobs max_run_time
+                  mine   = my_jobs(worker_name) 
+                  expire = expired_jobs(max_run_time)
                   jobs   = (ready + mine + expire)[0..limit-1].sort_by { |j| j.priority }
                   jobs   = jobs.find_all { |j| j.priority >= Worker.min_priority } if Worker.min_priority
                   jobs   = jobs.find_all { |j| j.priority <= Worker.max_priority } if Worker.max_priority
@@ -82,15 +82,15 @@ module Delayed
         private
       
         def self.ready_jobs
-          by_failed_at_locked_by_and_run_at.startkey([nil, nil]).endkey([nil, nil, db_time_now])
+          by_failed_at_locked_by_and_run_at.startkey([nil, nil]).endkey([nil, nil, db_time_now])["rows"]
         end
         
         def self.my_jobs(worker_name)
-          by_failed_at_locked_by_and_run_at.startkey([nil, worker_name]).endkey([nil, worker_name, {}])
+          by_failed_at_locked_by_and_run_at.startkey([nil, worker_name]).endkey([nil, worker_name, {}])["rows"]
         end  
         
         def self.expired_jobs(max_run_time)
-          by_failed_at_locked_at_and_run_at.startkey([nil, '0']).endkey([nil, db_time_now - max_run_time, db_time_now])
+          by_failed_at_locked_at_and_run_at.startkey([nil, '0']).endkey([nil, db_time_now - max_run_time, db_time_now])["rows"]
         end
         
         def unlocked?
