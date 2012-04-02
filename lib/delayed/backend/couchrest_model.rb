@@ -45,8 +45,8 @@ module Delayed
                   mine   = my_jobs(worker_name) 
                   expire = expired_jobs(max_run_time)
                   jobs   = (ready + mine + expire)[0..limit-1].sort_by { |j| j["priority"] }
-                  jobs   = jobs.find_all { |j| j.priority >= Worker.min_priority } if Worker.min_priority
-                  jobs   = jobs.find_all { |j| j.priority <= Worker.max_priority } if Worker.max_priority
+                  jobs   = jobs.find_all { |j| j["priority"] >= Worker.min_priority } if Worker.min_priority
+                  jobs   = jobs.find_all { |j| j["priority"] <= Worker.max_priority } if Worker.max_priority
                   jobs
                 end
 
