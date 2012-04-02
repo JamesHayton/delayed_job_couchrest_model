@@ -44,10 +44,17 @@ module Delayed
                   ready  = ready_jobs
                   mine   = my_jobs(worker_name) 
                   expire = expired_jobs(max_run_time)
-                  jobs   = (ready + mine + expire)[0..limit-1].sort_by { |j| j["priority"] }
-                  jobs   = jobs.find_all { |j| j["priority"] >= Worker.min_priority } if Worker.min_priority
-                  jobs   = jobs.find_all { |j| j["priority"] <= Worker.max_priority } if Worker.max_priority
-                  jobs
+                  jobs_array = []
+                  [ready, mine, expire].each do |view_results|
+                    view_results.each do |result|
+                      jobs_array << result
+                    end  
+                  end
+                  jobs_array[0..limit-1].sort_by { |j| j.priority }  
+                  #jobs   = (ready + mine + expire)
+                  jobs_array   = jobs.find_all { |j| j.priority >= Worker.min_priority } if Worker.min_priority
+                  jobs_array   = jobs.find_all { |j| j.priority <= Worker.max_priority } if Worker.max_priority
+                  jobs_array
                 end
 
         def lock_exclusively!(max_run_time, worker = worker_name)
@@ -82,15 +89,15 @@ module Delayed
         private
       
         def self.ready_jobs
-          by_failed_at_locked_by_and_run_at.startkey([nil, nil]).endkey([nil, nil, db_time_now])["rows"]
+          by_failed_at_locked_by_and_run_at.startkey([nil, nil]).endkey([nil, nil, db_time_now])
         end
         
         def self.my_jobs(worker_name)
-          by_failed_at_locked_by_and_run_at.startkey([nil, worker_name]).endkey([nil, worker_name, {}])["rows"]
+          by_failed_at_locked_by_and_run_at.startkey([nil, worker_name]).endkey([nil, worker_name, {}])
         end  
         
         def self.expired_jobs(max_run_time)
-          by_failed_at_locked_at_and_run_at.startkey([nil, '0']).endkey([nil, db_time_now - max_run_time, db_time_now])["rows"]
+          by_failed_at_locked_at_and_run_at.startkey([nil, '0']).endkey([nil, db_time_now - max_run_time, db_time_now])
         end
         
         def unlocked?
