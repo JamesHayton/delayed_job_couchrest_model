@@ -21,7 +21,7 @@ module Delayed
       class Job < CouchRest::Model::Base
         include Delayed::Backend::Base
         
-        #use_database ::CouchRest::Server.new.database("delayed_jobs")
+        use_database ::CouchRest::Server.new.database("delayed_jobs")
 
         property :priority,   Integer, :default => 0
         property :attempts,   Integer, :default => 0
